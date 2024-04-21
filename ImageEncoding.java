@@ -29,7 +29,13 @@ public class ImageEncoding {
         try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
             for(int row = 0; row< calculateH; row++) {
                 for(int col = 0; col<calculateW; col++) {
-                    byte[] hexcode = {dis.readByte(),dis.readByte(),dis.readByte()};
+                    
+                    byte byte1 = 0,byte2 = 0,byte3 = 0;
+                    try{
+                        byte1 = dis.readByte();
+                        byte2 =dis.readByte();
+                        byte3 =dis.readByte();
+                        byte[] hexcode = {byte1,byte2,byte3};
                     StringBuilder hexBuilder = new StringBuilder();
                     hexBuilder.append("0x");
                     for (byte b : hexcode) {
@@ -38,10 +44,16 @@ public class ImageEncoding {
                     String hexString = hexBuilder.toString();
                     Color c = Color.decode(hexString);
                     encodedFile.setRGB(col, row, c.getRGB());
+                    } catch (EOFException ex) {
+                        StringBuilder hexBuilder = new StringBuilder();
+                        hexBuilder.append(String.format("%02X", byte1));
+                        if(byte2 != 0)
+                            hexBuilder.append(String.format("%02X", byte2));
+                        break;
+                    }
                 }
             }
-        } catch (EOFException ex) {
-        } catch (IOException eIoException) {
+        }  catch (IOException eIoException) {
             eIoException.printStackTrace();
         }
         try {
@@ -57,7 +69,6 @@ public class ImageEncoding {
             for(int row = 0; row<imageToBeDecoded.getHeight(); row++) {
                 for(int col = 0; col<imageToBeDecoded.getWidth(); col++) {
                     int value = imageToBeDecoded.getRGB(col, row);
-                    if(value == -16777216) break;
                     byte byte1 = (byte) ((value >> 16) & 0xFF);
                     byte byte2 = (byte) ((value >> 8) & 0xFF);
                     byte byte3 = (byte) (value & 0xFF);
@@ -94,28 +105,38 @@ public class ImageEncoding {
         try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
             for(int row = 0; row< calculateH; row++) {
                 for(int col = 0; col<calculateW; col++) {
-                    byte[] hexcode = {dis.readByte(),dis.readByte(),dis.readByte()};
-                    StringBuilder hexBuilder = new StringBuilder();
-                    for (byte b : hexcode) {
-                        hexBuilder.append(String.format("%02X", b));
+                    byte byte1=0,byte2=0,byte3=0;
+                    try{
+                        byte1 = dis.readByte();
+                        byte2 = dis.readByte();
+                        byte3 = dis.readByte();
+                        byte[] hexcode = {byte1,byte2,byte3};
+                        StringBuilder hexBuilder = new StringBuilder();
+                        for (byte b : hexcode) {
+                            hexBuilder.append(String.format("%02X", b));
+                        }
+                        int randomInt = random.nextInt(hexCodesPossible.size());
+                        String hexCode = hexBuilder.toString();
+                        if(!assignedValues.contains(hexCode)) assignedValues.add(hexCode);
+                        String randomString = hexCodesPossible.get(randomInt);
+                        decodeWriter.write(String.format("%s %s%n", randomString, hexCode));
+                        Color c = Color.decode("0x"+randomString);
+                        encodedFile.setRGB(col, row, c.getRGB());
+                    } catch (EOFException ex) {
+                        StringBuilder hexBuilder = new StringBuilder();
+                        hexBuilder.append(String.format("%02X", byte1));
+                        if(byte2 != 0)
+                            hexBuilder.append(String.format("%02X", byte2));
+                        break;
                     }
-                    int randomInt = random.nextInt(hexCodesPossible.size());
-                    String hexCode = hexBuilder.toString();
-                    if(!assignedValues.contains(hexCode)) assignedValues.add(hexCode);
-                    String randomString = hexCodesPossible.get(randomInt);
-                    decodeWriter.write(String.format("%s %s%n", randomString, hexCode));
-                    Color c = Color.decode("0x"+randomString);
-                    System.out.println(c.toString());
-                    encodedFile.setRGB(col, row, c.getRGB());
                 }
             }
-        }catch (EOFException ex) {
-            try{
-                decodeWriter.close();
-            } catch(IOException IOException) {}
         } catch (IOException eIoException) {
             eIoException.printStackTrace();
         }
+        try {
+            decodeWriter.close();
+        } catch (IOException ex) {}
         try {
             File outputFile = new File(fileName+".png");
             ImageIO.write(encodedFile, "png", outputFile);
