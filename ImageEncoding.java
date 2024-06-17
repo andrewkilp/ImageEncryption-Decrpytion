@@ -136,11 +136,9 @@ public class ImageEncoding {
         }
         try {
             decodeWriter.close();
-        } catch (IOException ex) {}
-        try {
             File outputFile = new File(fileName+".png");
             ImageIO.write(encodedFile, "png", outputFile);
-        }catch (IOException e) {
+        } catch (IOException ex) {
             e.printStackTrace();
         }
     }
